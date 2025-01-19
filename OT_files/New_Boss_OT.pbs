@@ -23,7 +23,6 @@ g++ --version
 cd /home/daniele.calvo/OT_files/
 
 output_file="result.csv"
-echo "Type, Threads, Dimension, Time" > $output_file
 n_threads=("8")
 N=("4")
 n_times=1
