@@ -1,0 +1,86 @@
+#!/bin/bash
+# Job name
+#PBS -N MultiCppTest
+# Output files
+#PBS -o ./MultiCppTest.o
+#PBS -e ./MultiCppTest.e
+# Queue name
+#PBS -q short_cpuQ
+# Set the maximum wall time
+#PBS -l walltime=5:00:00
+# Number of nodes, CPUs, and memory allocation
+#PBS -l select=1:ncpus=64:mem=2gb
+
+# Load required modules
+module load gcc91
+module load mpich-3.2.1--gcc-9.1.0
+g++() {
+    g++-9.1.0 "$@"
+}
+g++ --version
+
+# Change to the working directory
+cd /home/daniele.calvo/Final_2/
+
+output_file="result.csv"
+echo "Type, Threads, Dimension, Time" > $output_file
+n_threads=("8")
+N=("4")
+n_times=1
+
+# Compile and execute the first work
+first_source="work.cpp"
+first_executable="work"
+first_flag="-fopenmp"
+
+echo "Compiling $first_source..."
+g++ -o "$first_executable" "$first_source" $first_flag
+if [ $? -ne 0 ]; then
+    echo "Error during compilation of $first_source"
+    exit 1
+fi
+
+echo "Compilation of $first_source completed successfully."
+
+for g in "${N[@]}"; do
+    for k in "${n_threads[@]}"; do
+        echo "Executing $first_executable with N=$g and Threads=$k..."
+        result=$("./$first_executable" $g $k $n_times)
+        if [ $? -ne 0 ]; then
+            echo "Error during execution of $first_executable with N=$g and Threads=$k."
+            exit 1
+        fi
+
+        echo "$first_source, $k, $g, $result"
+    done
+
+done
+
+# Compile and execute additional works
+additional_sources=("work_MPI_B_OT.cpp" "work_MPI_SG_OT.cpp")
+additional_executables=("work2" "work3")
+
+for i in "${!additional_sources[@]}"; do
+    echo "Compiling ${additional_sources[$i]}..."
+    mpicxx "${additional_sources[$i]}" -o "${additional_executables[$i]}"
+    if [ $? -ne 0 ]; then
+        echo "Error during compilation of ${additional_sources[$i]}"
+        exit 1
+    fi
+
+    echo "Compilation of ${additional_sources[$i]} completed successfully."
+
+    for g in "${N[@]}"; do
+        for k in "${n_threads[@]}"; do
+            echo "Executing ${additional_executables[$i]} with N=$g and Threads=$k..."
+            result=$(mpirun -np $k "./${additional_executables[$i]}" $g $n_times)
+            if [ $? -ne 0 ]; then
+                echo "Error during execution of ${additional_executables[$i]} with N=$g and Threads=$k."
+                exit 1
+            fi
+        done
+    done
+
+done
+
+echo "All tasks completed successfully."
