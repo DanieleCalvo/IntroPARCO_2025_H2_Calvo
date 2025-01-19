@@ -20,7 +20,7 @@ g++() {
 g++ --version
 
 # Change to the working directory
-cd /home/daniele.calvo/Final_2/
+cd /home/daniele.calvo/OT_files/
 
 output_file="result.csv"
 echo "Type, Threads, Dimension, Time" > $output_file
